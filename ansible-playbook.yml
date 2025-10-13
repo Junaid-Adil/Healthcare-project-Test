@@ -1,20 +1,110 @@
-- name : Configure Docker on EC2 Instances
-  hosts : all
-  become: true
-  connection : ssh
-  tasks : 
-  - name: updating apt
-    command : sudo apt-get update
+---
+- name: Install Kubernetes and dependencies
+  hosts: kubernetes
+  become: yes
+  tasks:
 
-  - name : Install Docker
-    command : sudo apt-get install -y docker.io
-    become : yes
-    become_user : root
+    - name: Disable swap
+      ansible.builtin.command: swapoff -a
+      ignore_errors: yes
 
-  - name : Start Docker Service
-    command : sudo systemctl start docker
-    become : yes
-    become_user : root
+    - name: Remove swap entry from fstab
+      ansible.builtin.replace:
+        path: /etc/fstab
+        regexp: '(^.*swap.*$)'
+        replace: '# \1'
 
-  - name: Deploy Docker Container
-    command: docker run -itd -p 8084:8082 junaidadil/healthcare-app:project2
+    - name: Update apt packages
+      ansible.builtin.apt:
+        update_cache: yes
+
+    - name: Install dependencies
+      ansible.builtin.apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+        state: present
+
+    - name: Add Docker GPG key
+      ansible.builtin.command: >
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+      args:
+        warn: false
+
+    - name: Add Docker repository
+      ansible.builtin.copy:
+        dest: /etc/apt/sources.list.d/docker.list
+        content: |
+          deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu focal stable
+
+    - name: Install Docker
+      ansible.builtin.apt:
+        update_cache: yes
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+        state: present
+
+    - name: Enable and start Docker
+      ansible.builtin.systemd:
+        name: docker
+        enabled: yes
+        state: started
+
+    - name: Add Kubernetes GPG key
+      ansible.builtin.command: curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+      args:
+        warn: false
+
+    - name: Add Kubernetes repository
+      ansible.builtin.copy:
+        dest: /etc/apt/sources.list.d/kubernetes.list
+        content: |
+          deb https://apt.kubernetes.io/ kubernetes-xenial main
+
+    - name: Install Kubernetes components
+      ansible.builtin.apt:
+        update_cache: yes
+        name:
+          - kubelet
+          - kubeadm
+          - kubectl
+        state: present
+
+    - name: Hold Kubernetes packages at current version
+      ansible.builtin.command: apt-mark hold kubelet kubeadm kubectl
+      args:
+        warn: false
+
+    - name: Enable and start kubelet
+      ansible.builtin.systemd:
+        name: kubelet
+        enabled: yes
+        state: started
+
+
+# - name : Configure Docker on EC2 Instances
+#   hosts : all
+#   become: true
+#   connection : ssh
+#   tasks : 
+#   - name: updating apt
+#     command : sudo apt-get update
+
+#   - name : Install Docker
+#     command : sudo apt-get install -y docker.io
+#     become : yes
+#     become_user : root
+
+#   - name : Start Docker Service
+#     command : sudo systemctl start docker
+#     become : yes
+#     become_user : root
+
+#   - name: Deploy Docker Container
+#     command: docker run -itd -p 8084:8082 junaidadil/healthcare-app:project2
+
