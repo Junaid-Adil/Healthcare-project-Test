@@ -3,20 +3,20 @@ kind: Deployment
 metadata:
   name: healthcare-app-deploy
   labels:
-    app: healthcare-app
+    app: healthcare-app-latest
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: healthcare-app
+      app: healthcare-app-latest
   template:
     metadata:
       labels:
-        app: healthcare-app
+        app: healthcare-app-latest
     spec:
       containers:
       - name: healthcare-app-container
-        image: junaidadil/healthcare-app:project2
+        image: junaidadil/healthcare-app-latest:project2
         ports:
         - containerPort: 8082
       imagePullSecrets:
@@ -28,12 +28,13 @@ kind: Service
 metadata:
   name: healthcare-app-np-service
   labels:
-    app: healthcare-app
+    app: healthcare-app-latest
 spec:
   selector:
-    app: healthcare-app
+    app: healthcare-app-latest
   type: NodePort
   ports:
   - nodePort: 31020
     port: 8082
     targetPort: 8082
+
