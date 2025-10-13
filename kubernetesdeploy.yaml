@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: healthcare-app-deploy
+  labels:
+    app: healthcare-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: healthcare-app
+  template:
+    metadata:
+      labels:
+        app: healthcare-app
+    spec:
+      containers:
+      - name: healthcare-app-container
+        image: junaidadil/healthcare-app:project2
+        ports:
+        - containerPort: 8082
+      imagePullSecrets:
+      - name: myregistrykey   
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: healthcare-app-np-service
+  labels:
+    app: healthcare-app
+spec:
+  selector:
+    app: healthcare-app
+  type: NodePort
+  ports:
+  - nodePort: 31020
+    port: 8082
+    targetPort: 8082
