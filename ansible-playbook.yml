@@ -1,12 +1,10 @@
----
-- name: Install Kubernetes and dependencies
-  hosts: Slave_node
+- name: Install dependencies for Kubernetes and Docker
+  hosts: all
   become: yes
   tasks:
 
     - name: Disable swap
       ansible.builtin.command: swapoff -a
-      ignore_errors: yes
 
     - name: Remove swap entry from fstab
       ansible.builtin.replace:
@@ -14,55 +12,37 @@
         regexp: '(^.*swap.*$)'
         replace: '# \1'
 
-    - name: Update apt packages
-      ansible.builtin.apt:
-        update_cache: yes
+#    - name: Update apt package list
+#      ansible.builtin.apt:
+#        update_cache: yes
 
-    - name: Install dependencies
+    # ---------- DOCKER SETUP ----------
+    - name: Install required dependencies
       ansible.builtin.apt:
         name:
-          - apt-transport-https
           - ca-certificates
           - curl
           - gnupg
           - lsb-release
         state: present
 
- #  - name: Add Docker GPG key
- #    become: true
- #    shell: |
- #     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
- #     gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+    - name: Add Docker GPG key
+      ansible.builtin.apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        keyring: /etc/apt/keyrings/docker.gpg
+        state: present
 
- #   - name: Add Docker GPG key
- #     ansible.builtin.command: >
- #       curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
- #     args:
- #       warn: false
+    - name: Add Docker APT repository
+      ansible.builtin.apt_repository:
+        repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu {{ ansible_lsb.codename | default('jammy') }} stable"
+        filename: docker
 
-  - name: Ensure keyring directory exists
-     become: true
-     file:
-       path: /usr/share/keyrings
-       state: directory
-       mode: '0755'
+#    - name: Update apt after Docker repo add
+#      ansible.builtin.apt:
+#        update_cache: yes
 
-  - name: Add Docker GPG key
-    become: true
-    shell: |
-      curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
-      gpg --batch --yes --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-
-
-    - name: Add Docker repository
-      ansible.builtin.copy:
-        dest: /etc/apt/sources.list.d/docker.list
-        content: |
-          deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu focal stable
-
-    - name: Install Docker
+    - name: Install Docker engine and CLI
       ansible.builtin.apt:
-        update_cache: yes
         name:
           - docker-ce
           - docker-ce-cli
@@ -70,70 +50,35 @@
         state: present
 
     - name: Enable and start Docker
-      ansible.builtin.systemd:
+      ansible.builtin.service:
         name: docker
         enabled: yes
         state: started
 
+    # ---------- KUBERNETES SETUP ----------
     - name: Add Kubernetes GPG key
-      become: true
-      shell: |
-        curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
+      ansible.builtin.apt_key:
+        url: https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key
+        keyring: /etc/apt/keyrings/kubernetes-archive-keyring.gpg
+        state: present
 
- #   - name: Add Kubernetes GPG key
- #     ansible.builtin.command: curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
- #     args:
- #       warn: false
+    - name: Add Kubernetes APT repository
+      ansible.builtin.apt_repository:
+        repo: "deb [signed-by=/etc/apt/keyrings/kubernetes-archive-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /"
+        filename: kubernetes
 
-    - name: Add Kubernetes repository
-      ansible.builtin.copy:
-        dest: /etc/apt/sources.list.d/kubernetes.list
-        content: |
-          deb https://apt.kubernetes.io/ kubernetes-xenial main
+#    - name: Update apt after Kubernetes repo add
+#      ansible.builtin.apt:
+#        update_cache: yes
 
-    - name: Install Kubernetes components
+    - name: Install kubeadm, kubelet, and kubectl
       ansible.builtin.apt:
-        update_cache: yes
         name:
           - kubelet
           - kubeadm
           - kubectl
         state: present
+        update_cache: yes
 
-    - name: Hold Kubernetes packages at current version
+    - name: Hold kube packages
       ansible.builtin.command: apt-mark hold kubelet kubeadm kubectl
-      args:
-        warn: false
-
-    - name: Enable and start kubelet
-      ansible.builtin.systemd:
-        name: kubelet
-        enabled: yes
-        state: started
-
-
-# - name : Configure Docker on EC2 Instances
-#   hosts : all
-#   become: true
-#   connection : ssh
-#   tasks : 
-#   - name: updating apt
-#     command : sudo apt-get update
-
-#   - name : Install Docker
-#     command : sudo apt-get install -y docker.io
-#     become : yes
-#     become_user : root
-
-#   - name : Start Docker Service
-#     command : sudo systemctl start docker
-#     become : yes
-#     become_user : root
-
-#   - name: Deploy Docker Container
-#     command: docker run -itd -p 8084:8082 junaidadil/healthcare-app:project2
-
-
-
-
-
