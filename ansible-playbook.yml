@@ -1,5 +1,5 @@
 - name: Install dependencies for Kubernetes and Docker
-  hosts: all
+  hosts: Slave_node
   become: yes
   tasks:
 
@@ -82,3 +82,4 @@
 
     - name: Hold kube packages
       ansible.builtin.command: apt-mark hold kubelet kubeadm kubectl
+
