@@ -1,6 +1,6 @@
 ---
 - name: Install Kubernetes and dependencies
-  hosts: local
+  hosts: Slave_node
   become: yes
   tasks:
 
@@ -107,5 +107,6 @@
 
 #   - name: Deploy Docker Container
 #     command: docker run -itd -p 8084:8082 junaidadil/healthcare-app:project2
+
 
 
