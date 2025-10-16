@@ -28,17 +28,31 @@
           - lsb-release
         state: present
 
-   - name: Add Docker GPG key
-     become: true
-     shell: |
-      curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
-      gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+ #  - name: Add Docker GPG key
+ #    become: true
+ #    shell: |
+ #     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
+ #     gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
 
  #   - name: Add Docker GPG key
  #     ansible.builtin.command: >
  #       curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
  #     args:
  #       warn: false
+
+  - name: Ensure keyring directory exists
+     become: true
+     file:
+       path: /usr/share/keyrings
+       state: directory
+       mode: '0755'
+
+  - name: Add Docker GPG key
+    become: true
+    shell: |
+      curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
+      gpg --batch --yes --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+
 
     - name: Add Docker repository
       ansible.builtin.copy:
@@ -118,6 +132,7 @@
 
 #   - name: Deploy Docker Container
 #     command: docker run -itd -p 8084:8082 junaidadil/healthcare-app:project2
+
 
 
 
