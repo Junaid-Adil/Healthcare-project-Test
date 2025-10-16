@@ -28,11 +28,18 @@
           - lsb-release
         state: present
 
+  #  - name: Add Docker GPG key
+  #    ansible.builtin.command: >
+  #      curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+  #    args:
+  #      warn: false
+
     - name: Add Docker GPG key
-      ansible.builtin.command: >
-        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-      args:
-        warn: false
+      become: true
+      shell: |
+       curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
+       gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+
 
     - name: Add Docker repository
       ansible.builtin.copy:
@@ -55,10 +62,15 @@
         enabled: yes
         state: started
 
+ #   - name: Add Kubernetes GPG key
+ #     ansible.builtin.command: curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+ #     args:
+ #       warn: false
+
     - name: Add Kubernetes GPG key
-      ansible.builtin.command: curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
-      args:
-        warn: false
+      become: true
+      shell: |
+       curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
 
     - name: Add Kubernetes repository
       ansible.builtin.copy:
@@ -107,5 +119,6 @@
 
 #   - name: Deploy Docker Container
 #     command: docker run -itd -p 8084:8082 junaidadil/healthcare-app:project2
+
 
 
